@@ -45,6 +45,10 @@ link.
 *Sizes are subject to change. Will be based on the size of the board*
 
 - Board:
+    - 10 x 10 cells
+    - Water (Empty)
+    - Miss
+    - Target Hit
 
 ## Stack
 
