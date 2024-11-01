@@ -11,7 +11,7 @@ func main() {
 	// api_v1_group := v1_group.Group("/api")
 
 	router.LoadHTMLGlob("web/templates/*")
-	router.StaticFile("/v1/web/static/main.js", "./web/dist/main.js")
+	router.Static("/v1/web/static", "./web/dist")
 
 	web_v1_group.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", gin.H{})

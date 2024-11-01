@@ -1,23 +1,17 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const gameboard_js_1 = require("./gameboard.js");
-// declare global {
-//   interface Window {
-//     inputChange: () => void;
-//   }
-// }
+import { Gameboard } from "./gameboard.js";
 const canvas = document.getElementById("gameboard");
 const ctx = canvas.getContext("2d");
 canvas.width = 800;
 canvas.height = 800;
-const gameboard = new gameboard_js_1.Gameboard(canvas.width, canvas.height, ctx);
+const gameboard = new Gameboard(canvas, ctx);
 gameboard.draw();
-// function inputChange(): void {
-//   const input: HTMLInputElement = document.getElementById("cell_count") as HTMLInputElement;
-//   const cell_count: number = parseInt(input.value);
-//   gameboard.setCellCount(cell_count);
-//   gameboard.clear();
-//   gameboard.draw();
-// }
-//
-// window.inputChange = inputChange;
+gameboard.generateCellData();
+gameboard.spawnMouseEvents();
+function inputChange() {
+    const input = document.getElementById("cell_count");
+    const cell_count = parseInt(input.value);
+    gameboard.setCellCount(cell_count);
+    gameboard.clear();
+    gameboard.draw();
+}
+window.inputChange = inputChange;
