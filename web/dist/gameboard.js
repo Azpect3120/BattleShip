@@ -17,6 +17,11 @@ export class Gameboard {
         this.width = 0;
         this.height = 0;
         /**
+         * Color of the gameboard and grid.
+         */
+        this.color = "white";
+        this.active_color = "red";
+        /**
          * Number of cells in the gameboard.
          * This value defines the height and width.
          */
@@ -31,7 +36,13 @@ export class Gameboard {
          * Unit: px
          */
         this.cell_width = this.width / this.cell_count;
-        this.last_hovewhite_cell = null;
+        /**
+         * Last cell hovered by the user. Used to un-highlight the cell when the user
+         * moves the mouse.
+         */
+        this.last_hovered_cell = null;
+        this.dragging = false;
+        this.dragging_active = false;
         this.ctx = ctx;
         this.canvas = canvas;
         this.width = this.canvas.width;
@@ -39,31 +50,97 @@ export class Gameboard {
         this.cell_height = this.height / this.cell_count;
         this.cell_width = this.width / this.cell_count;
         this.cell_data = [];
+        let click_hanlder = (event) => {
+            let x = event.offsetX;
+            let y = event.offsetY;
+            let cell = this.cell_data[Math.floor(x / this.cell_width)][Math.floor(y / this.cell_height)];
+            this.click_cell(cell);
+        };
+        let mouse_move_handler = (event) => {
+            let x = event.offsetX;
+            let y = event.offsetY;
+            let cell = this.cell_data[Math.floor(x / this.cell_width)][Math.floor(y / this.cell_height)];
+            if (this.dragging) {
+                this.drag_cell(cell);
+            }
+            else {
+                this.hover_cell(cell);
+                this.last_hovered_cell = cell;
+            }
+            this.ctx.strokeRect(0, 0, this.width, this.height);
+        };
+        let mouse_down_handler = (event) => {
+            let x = event.offsetX;
+            let y = event.offsetY;
+            let cell = this.cell_data[Math.floor(x / this.cell_width)][Math.floor(y / this.cell_height)];
+            this.dragging_active = !cell.is_selected();
+            this.dragging = true;
+        };
+        let mouse_up_handler = (event) => {
+            let x = event.offsetX;
+            let y = event.offsetY;
+            let cell = this.cell_data[Math.floor(x / this.cell_width)][Math.floor(y / this.cell_height)];
+            if (!this.dragging_active) {
+                cell.select();
+                this.fill_cell(cell, this.active_color);
+            }
+            else {
+                cell.deselect();
+                this.clear_cell(cell);
+            }
+            this.dragging = false;
+        };
+        this.canvas.onclick = click_hanlder;
+        this.canvas.onmouseup = mouse_up_handler;
+        this.canvas.onmousedown = mouse_down_handler;
+        this.canvas.onmousemove = mouse_move_handler;
     }
     /**
      * Update the cell count of the gameboard. This will also update the
      * cell width and height. `Gameboard.draw()` should be called after this
      * method to update the canvas.
      */
-    setCellCount(cell_count) {
+    set_cell_count(cell_count) {
         this.cell_count = cell_count;
         this.cell_height = this.height / this.cell_count;
         this.cell_width = this.width / this.cell_count;
+        this.last_hovered_cell = null;
+    }
+    /**
+     * Set the color of the gameboard. This function will also redraw the gameboard.
+     */
+    set_color(color) {
+        console.log(`Setting color to ${color}`);
+        this.color = color;
+        this.clear();
+        this.draw();
+    }
+    /**
+     * Set the active color of the gameboard selections. This function will also
+     * redraw the gameboard.
+     */
+    set_active_color(color) {
+        console.log(`Setting active_color to ${color}`);
+        this.active_color = color;
+        this.clear();
+        this.draw();
     }
     /**
      * Draw the gameboard to the canvas.
      */
     draw() {
-        this.ctx.strokeStyle = "white";
+        this.ctx.strokeStyle = this.color;
         console.log(`Drawing gameboard ${this.width}x${this.height} (${this.cell_count})`);
-        console.log(`cell_width: ${this.cell_width}, cell_height: ${this.cell_height}`);
         for (let i = 0; i < this.cell_count; i++) {
             for (let j = 0; j < this.cell_count; j++) {
-                this.ctx.strokeRect(i * this.cell_width, j * this.cell_height, this.cell_width, this.cell_height);
+                const cell = this.cell_data[i][j];
+                if (cell.is_selected()) {
+                    this.fill_cell(cell, this.active_color);
+                }
             }
         }
         // TEMP: This is just so the gridlines are all the same size.
-        this.ctx.strokeRect(1, 1, this.width, this.height);
+        this.ctx.strokeRect(0, 0, this.width, this.height);
     }
     /**
      * Clear the gameboard from the canvas.
@@ -76,7 +153,7 @@ export class Gameboard {
      * Generate the cell data for the gameboard.
      * Each cell will be based on the cell width and height.
      */
-    generateCellData() {
+    generate() {
         this.cell_data = Array.of();
         for (let i = 0; i < this.cell_count; i++) {
             for (let j = 0; j < this.cell_count; j++) {
@@ -89,30 +166,65 @@ export class Gameboard {
             }
         }
     }
-    cell_hover(cell) {
-        this.ctx.fillStyle = "white";
-        this.last_hovewhite_cell ? this.strokeCell(this.last_hovewhite_cell, "white") : null;
-        this.ctx.fillRect(cell.a.x, cell.a.y, (cell.b.x - cell.a.x), (cell.b.y - cell.a.y));
+    /**
+     * Hover event called on each cell when the user hovers over it.
+     * This will highlight the cell in the color provided in the `color`
+     * attribute.
+     */
+    hover_cell(cell) {
+        if (this.last_hovered_cell) {
+            this.clear_cell(this.last_hovered_cell);
+            if (this.last_hovered_cell.is_selected()) {
+                this.ctx.strokeStyle = this.active_color;
+                this.ctx.fillRect(this.last_hovered_cell.a.x - 1, this.last_hovered_cell.a.y - 1, (this.last_hovered_cell.b.x - this.last_hovered_cell.a.x) + 2, (this.last_hovered_cell.b.y - this.last_hovered_cell.a.y) + 2);
+            }
+        }
+        this.ctx.strokeStyle = this.color;
+        this.ctx.strokeRect(cell.a.x, cell.a.y, (cell.b.x - cell.a.x), (cell.b.y - cell.a.y));
     }
-    strokeCell(cell, color) {
-        this.ctx.strokeStyle = color;
-        this.ctx.clearRect(cell.a.x - 1, cell.a.y - 1, (cell.b.x - cell.a.x) + 2, (cell.b.y - cell.a.y) + 2);
-        for (let i = 0; i < 10; i++) {
-            this.ctx.strokeRect(cell.a.x, cell.a.y, (cell.b.x - cell.a.x), (cell.b.y - cell.a.y));
+    /**
+     * Drag event called on each cell when the user drags over it.
+     * This functions like a painter tool, where the used can click
+     * and drag to paint/erase on the canvas.
+     */
+    drag_cell(cell) {
+        if (!cell)
+            return;
+        if (this.dragging_active) {
+            cell.select();
+            this.fill_cell(cell, this.active_color);
+        }
+        else {
+            cell.deselect();
+            this.clear_cell(cell);
         }
     }
     /**
-    * Create the mouse events for the gameboard.
+     *
+     * Click event called on each cell when the user clicks on it.
+     * This will toggle the selection on the cell.
+     */
+    click_cell(cell) {
+        cell.toggle_select();
+        if (cell.is_selected()) {
+            this.fill_cell(cell, this.active_color);
+        }
+        else {
+            this.clear_cell(cell);
+        }
+    }
+    /**
+    * Fill a cell with a color.
     */
-    spawnMouseEvents() {
-        let click_handler = (event) => {
-            let x = event.offsetX;
-            let y = event.offsetY;
-            let cell = this.cell_data[Math.floor(x / this.cell_width)][Math.floor(y / this.cell_height)];
-            this.cell_hover(cell);
-            this.last_hovewhite_cell = cell;
-        };
-        this.canvas.onclick = click_handler;
-        this.canvas.onmousemove = click_handler;
+    fill_cell(cell, color) {
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(cell.a.x, cell.a.y, (cell.b.x - cell.a.x), (cell.b.y - cell.a.y));
+    }
+    /**
+     * Clear the color of a cell. The border will also be removed, should it
+     * somehow exist.
+     */
+    clear_cell(cell) {
+        this.ctx.clearRect(cell.a.x - 1, cell.a.y - 1, (cell.b.x - cell.a.x) + 2, (cell.b.y - cell.a.y) + 2);
     }
 }

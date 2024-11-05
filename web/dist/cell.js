@@ -15,7 +15,34 @@ export class Coordinate {
  */
 export class Cell {
     constructor(a, b) {
+        /**
+         * Whether the cell is selected by the user.
+         */
+        this.selected = false;
         this.a = a;
         this.b = b;
+    }
+    is_selected() {
+        return this.selected;
+    }
+    /**
+     * Select this cell.
+     */
+    select() {
+        this.selected = true;
+    }
+    /**
+     * Deselect this cell.
+     */
+    deselect() {
+        this.selected = false;
+    }
+    /**
+     * Toggle the selection state of this cell.
+     * If the cell is selected, deselect it.
+     * If the cell is not selected, select it.
+     */
+    toggle_select() {
+        this.selected = !this.selected;
     }
 }

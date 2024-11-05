@@ -41,8 +41,40 @@ export class Cell {
   */
   b: Coordinate;
 
+  /**
+   * Whether the cell is selected by the user.
+   */
+  private selected: boolean = false;
+
   constructor(a: Coordinate, b: Coordinate) {
     this.a = a;
     this.b = b;
+  }
+
+  is_selected(): boolean {
+    return this.selected;
+  }
+
+  /**
+   * Select this cell.
+   */
+  select(): void {
+    this.selected = true;
+  }
+
+  /**
+   * Deselect this cell.
+   */
+  deselect(): void {
+    this.selected = false;
+  }
+
+  /**
+   * Toggle the selection state of this cell.
+   * If the cell is selected, deselect it.
+   * If the cell is not selected, select it.
+   */
+  toggle_select(): void {
+    this.selected = !this.selected;
   }
 }
