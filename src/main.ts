@@ -1,4 +1,6 @@
 import { Gameboard } from "./gameboard.js";
+import { Ship, Ships } from "./data.js";
+import { Coordinate } from "./cell.js";
 
 declare global {
   interface Window {
@@ -17,6 +19,18 @@ canvas.height = 800;
 const gameboard = new Gameboard(canvas, ctx);
 gameboard.generate();
 gameboard.draw();
+
+let val: void | Error;
+val = gameboard.add_ship(new Ship(Ships.Carrier, new Coordinate(0, 0), new Coordinate(0, 4)));
+if (val instanceof Error) {
+  console.error(val.message);
+}
+val = gameboard.add_ship(new Ship(Ships.Battleship, new Coordinate(1, 2), new Coordinate(4, 2)));
+if (val instanceof Error) {
+  console.error(val.message);
+}
+
+console.log(gameboard.ships);
 
 function inputChange(): void {
   const input: HTMLInputElement = document.getElementById("cell_count") as HTMLInputElement;

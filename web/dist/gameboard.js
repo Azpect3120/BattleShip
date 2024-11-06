@@ -1,4 +1,5 @@
 import { Cell, Coordinate } from "./cell.js";
+import { Direction } from "./data.js";
 /** Gameboard class. Stores data regarding the gameboard and provides methods to draw the gameboard to the canvas.
  */
 export class Gameboard {
@@ -37,11 +38,23 @@ export class Gameboard {
          */
         this.cell_width = this.width / this.cell_count;
         /**
+         * Stores the ships on the gameboard. The ships are looped through to determine
+         * if a ship is hit or not. They are also used to draw the ships on the board.
+         */
+        this.ships = [];
+        /**
          * Last cell hovered by the user. Used to un-highlight the cell when the user
          * moves the mouse.
          */
         this.last_hovered_cell = null;
+        /**
+         * Whether the user is dragging. Used to determine if the user is dragging
+         * the mouse to allow for selections. Might remove the 'paint' feature.
+         */
         this.dragging = false;
+        /**
+         * Whether the use is dragging to paint or to erase.
+         */
         this.dragging_active = false;
         this.ctx = ctx;
         this.canvas = canvas;
@@ -205,6 +218,9 @@ export class Gameboard {
      * This will toggle the selection on the cell.
      */
     click_cell(cell) {
+        for (let i = 0; i < this.ships.length; i++) {
+            const ship = this.ships[i];
+        }
         cell.toggle_select();
         if (cell.is_selected()) {
             this.fill_cell(cell, this.active_color);
@@ -226,5 +242,34 @@ export class Gameboard {
      */
     clear_cell(cell) {
         this.ctx.clearRect(cell.a.x - 1, cell.a.y - 1, (cell.b.x - cell.a.x) + 2, (cell.b.y - cell.a.y) + 2);
+    }
+    /**
+     * Add a ship to the gameboard. If the ship is invalid, an error is returned.
+     */
+    add_ship(ship) {
+        // Loop over all the ships, likely fast enough since there will only be a few ships
+        for (let i = 0; i < this.ships.length; i++) {
+            let s = this.ships[i];
+            // If the provided ship is horizontal, loop over the x-coordinates
+            if (ship.direction() === Direction.Horizontal) {
+                for (let j = ship.start.x; j <= ship.end.x; j++) {
+                    // Check if the new ship (at this coord) intersects witht the current ship
+                    if (s.intersects(new Coordinate(j, ship.start.y))) {
+                        return new Error("Ship intersects with another ship");
+                    }
+                }
+            }
+            // If the provided ship is vertical, loop overthe y-coordinates
+            if (ship.direction() === Direction.Vertical) {
+                for (let j = ship.start.y; j <= ship.end.y; j++) {
+                    // Check if the new ship (at this coord) intersects with the current ship
+                    if (s.intersects(new Coordinate(ship.start.x, j))) {
+                        return new Error("Ship intersects with another ship");
+                    }
+                }
+            }
+        }
+        // No return, so the ship is valid and can be added to the list
+        this.ships.push(ship);
     }
 }
