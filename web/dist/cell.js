@@ -19,6 +19,10 @@ export class Cell {
          * Whether the cell is selected by the user.
          */
         this.selected = false;
+        /**
+         * Whether the cell contains a ship.
+         */
+        this.ship = false;
         this.a = a;
         this.b = b;
     }
@@ -44,5 +48,17 @@ export class Cell {
      */
     toggle_select() {
         this.selected = !this.selected;
+    }
+    /**
+     * Check if the cell contains a ship.
+     */
+    is_ship() {
+        return this.ship;
+    }
+    /**
+     * Place a ship in this cell.
+     */
+    place_ship() {
+        this.ship = true;
     }
 }

@@ -19,6 +19,15 @@
       justify-content: center;
       align-items: center;
     }
+
+    div.input {
+      display: flex;
+      flex-direction: row;
+    }
+
+    input {
+      margin-inline: 2px;
+    }
   </style>
 </head>
 
@@ -28,10 +37,28 @@
   <input type="color" id="color_picker" oninput="changeColor();" value="#ffffff">
   <input type="color" id="active_color_picker" oninput="changeActiveColor();" value="#ffffff">
 
-  <div class="wrapper">
-    <canvas id="gameboard">
+  <div class="new_ship_wrapper">
+    <div class="input">
+      <label for="new_ship_x_a">X Start: </label>
+      <input type="number" id="new_ship_x_a" value="0" min="0">
+    </div>
+    <div class="input">
+      <label for="new_ship_y_a">Y Start: </label>
+      <input type="number" id="new_ship_y_a" value="0" min="0">
+    </div>
+    <div class="input">
+      <label for="new_ship_x_b">X End: </label>
+      <input type="number" id="new_ship_x_b" value="0" min="0">
+    </div>
+    <div class="input">
+      <label for="new_ship_y_b">Y End: </label>
+      <input type="number" id="new_ship_y_b" value="0" min="0">
+    </div>
+    <button onclick="placeNewShip();">Add Ship</button>
+  </div>
 
-    </canvas>
+  <div class="wrapper">
+    <canvas id="gameboard"></canvas>
   </div>
 
   <script src="/v1/web/static/main.js" type="module"></script>

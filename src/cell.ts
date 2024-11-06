@@ -46,6 +46,11 @@ export class Cell {
    */
   private selected: boolean = false;
 
+  /**
+   * Whether the cell contains a ship.
+   */
+  private ship: boolean = false;
+
   constructor(a: Coordinate, b: Coordinate) {
     this.a = a;
     this.b = b;
@@ -76,5 +81,19 @@ export class Cell {
    */
   toggle_select(): void {
     this.selected = !this.selected;
+  }
+
+  /**
+   * Check if the cell contains a ship.
+   */
+  is_ship(): boolean {
+    return this.ship;
+  }
+
+  /**
+   * Place a ship in this cell.
+   */
+  place_ship(): void {
+    this.ship = true;
   }
 }

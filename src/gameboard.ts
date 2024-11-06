@@ -1,7 +1,8 @@
 import { Cell, Coordinate } from "./cell.js";
 import { Direction, Ship } from "./data.js";
 
-/** Gameboard class. Stores data regarding the gameboard and provides methods to draw the gameboard to the canvas.
+/** 
+ * Gameboard class. Stores data regarding the gameboard and provides methods to draw the gameboard to the canvas.
  */
 export class Gameboard {
   /**
@@ -70,12 +71,12 @@ export class Gameboard {
    * Whether the user is dragging. Used to determine if the user is dragging
    * the mouse to allow for selections. Might remove the 'paint' feature.
    */
-  dragging: boolean = false;
+  // dragging: boolean = false;
 
   /**
    * Whether the use is dragging to paint or to erase.
    */
-  dragging_active: boolean = false;
+  // dragging_active: boolean = false;
 
   /**
    * Constructor for the Gameboard class.
@@ -105,46 +106,13 @@ export class Gameboard {
       let x: number = event.offsetX;
       let y: number = event.offsetY;
       let cell = this.cell_data[Math.floor(x / this.cell_width)][Math.floor(y / this.cell_height)];
-      if (this.dragging) {
-        this.drag_cell(cell);
-      } else {
-        this.hover_cell(cell);
-        this.last_hovered_cell = cell;
-      }
+      this.hover_cell(cell);
+      this.last_hovered_cell = cell;
 
       this.ctx.strokeRect(0, 0, this.width, this.height);
     };
 
-    let mouse_down_handler = (event: MouseEvent): void => {
-      let x: number = event.offsetX;
-      let y: number = event.offsetY;
-      let cell = this.cell_data[Math.floor(x / this.cell_width)][Math.floor(y / this.cell_height)];
-
-      this.dragging_active = !cell.is_selected();
-
-      this.dragging = true;
-    }
-
-    let mouse_up_handler = (event: MouseEvent): void => {
-      let x: number = event.offsetX;
-      let y: number = event.offsetY;
-      let cell = this.cell_data[Math.floor(x / this.cell_width)][Math.floor(y / this.cell_height)];
-
-      if (!this.dragging_active) {
-        cell.select();
-        this.fill_cell(cell, this.active_color);
-      } else {
-        cell.deselect();
-        this.clear_cell(cell);
-      }
-
-      this.dragging = false;
-    }
-
-
     this.canvas.onclick = click_hanlder;
-    this.canvas.onmouseup = mouse_up_handler;
-    this.canvas.onmousedown = mouse_down_handler;
     this.canvas.onmousemove = mouse_move_handler;
   }
 
@@ -158,6 +126,13 @@ export class Gameboard {
     this.cell_height = this.height / this.cell_count;
     this.cell_width = this.width / this.cell_count;
     this.last_hovered_cell = null;
+  }
+
+  /**
+   * Get the cell count of the gameboard.
+   */
+  get_cell_count(): number {
+    return this.cell_count;
   }
 
   /** 
@@ -190,7 +165,7 @@ export class Gameboard {
     for (let i = 0; i < this.cell_count; i++) {
       for (let j = 0; j < this.cell_count; j++) {
         const cell: Cell = this.cell_data[i][j];
-        if (cell.is_selected()) {
+        if (cell.is_selected() || cell.is_ship()) {
           this.fill_cell(cell, this.active_color);
         }
       }
@@ -211,6 +186,9 @@ export class Gameboard {
   /**
    * Generate the cell data for the gameboard.
    * Each cell will be based on the cell width and height.
+   * Uses the data stored in `ships` to fill the cells with the ships.
+   * Calls `draw` after generating the data. Caller does not need to 
+   * call `draw`.
    */
   generate(): void {
     this.cell_data = Array.of();
@@ -224,6 +202,21 @@ export class Gameboard {
         this.cell_data[i].push(new Cell(a, b));
       }
     }
+
+    for (let ship of this.ships) {
+      if (ship.direction() === Direction.Horizontal) {
+        for (let i = ship.start.x; i <= ship.end.x; i++) {
+          this.cell_data[i][ship.start.y].place_ship();
+        }
+      }
+      if (ship.direction() === Direction.Vertical) {
+        for (let i = ship.start.y; i <= ship.end.y; i++) {
+          this.cell_data[ship.start.x][i].place_ship();
+        }
+      }
+    }
+
+    this.draw();
   }
 
   /**
@@ -235,7 +228,7 @@ export class Gameboard {
     if (this.last_hovered_cell) {
       this.clear_cell(this.last_hovered_cell);
 
-      if (this.last_hovered_cell.is_selected()) {
+      if (this.last_hovered_cell.is_selected() || this.last_hovered_cell.is_ship()) {
         this.ctx.strokeStyle = this.active_color;
         this.ctx.fillRect(this.last_hovered_cell.a.x - 1, this.last_hovered_cell.a.y - 1, (this.last_hovered_cell.b.x - this.last_hovered_cell.a.x) + 2, (this.last_hovered_cell.b.y - this.last_hovered_cell.a.y) + 2);
       }
@@ -246,42 +239,53 @@ export class Gameboard {
   }
 
   /**
-   * Drag event called on each cell when the user drags over it.
-   * This functions like a painter tool, where the used can click 
-   * and drag to paint/erase on the canvas.
-   */
-  drag_cell(cell: Cell): void {
-    if (!cell) return;
-
-    if (this.dragging_active) {
-      cell.select();
-      this.fill_cell(cell, this.active_color);
-    } else {
-      cell.deselect();
-      this.clear_cell(cell);
-    }
-  }
-
-  /**
-   *
    * Click event called on each cell when the user clicks on it.
    * This will toggle the selection on the cell.
    */
   click_cell(cell: Cell): void {
+    // Create a coordinate for the cell, this is used for the
+    // intersection check.
+    const cell_coord: Coordinate = new Coordinate(
+      Math.floor(cell.a.x / this.cell_width),
+      Math.floor(cell.a.y / this.cell_height)
+    );
+
+    console.log(cell_coord);
 
     for (let i = 0; i < this.ships.length; i++) {
       const ship = this.ships[i];
+      if (ship.direction() === Direction.Vertical) {
+        for (let j = ship.start.y; j <= ship.end.y; j++) {
+          if (cell_coord.y === j && (cell_coord.x === ship.start.x)) {
+            // Do something
+            console.log("HIT!");
+            cell.select();
 
+            if (cell.is_selected()) {
+              this.fill_cell(cell, this.active_color);
+            } else {
+              this.clear_cell(cell);
+            }
+          }
+        }
+      }
+      if (ship.direction() === Direction.Horizontal) {
+        for (let j = ship.start.x; j <= ship.end.x; j++) {
+          if (cell_coord.x === j && (cell_coord.y === ship.start.y)) {
+            // Do something
+            console.log("HIT!");
+            cell.select();
 
+            if (cell.is_selected()) {
+              this.fill_cell(cell, this.active_color);
+            } else {
+              this.clear_cell(cell);
+            }
+          }
+        }
+      }
     }
 
-    cell.toggle_select();
-
-    if (cell.is_selected()) {
-      this.fill_cell(cell, this.active_color);
-    } else {
-      this.clear_cell(cell);
-    }
   }
 
   /**
@@ -302,6 +306,8 @@ export class Gameboard {
 
   /**
    * Add a ship to the gameboard. If the ship is invalid, an error is returned.
+   * Does not call `Gameboard.generate()` or `Gameboard.draw()`. Caller must
+   * call the `Gameboard.generate()` method.
    */
   add_ship(ship: Ship): void | Error {
     // Loop over all the ships, likely fast enough since there will only be a few ships
